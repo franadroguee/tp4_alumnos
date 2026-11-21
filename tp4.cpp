@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <queue>
 
 #include "graphClass.h"
 
@@ -85,7 +86,35 @@ int indiceDe(const GrafoCiudades& g, const string& ciudad) {
 
 vector<vector<string>> componentesConexas(const GrafoCiudades& g) {
     // TODO: implementar
-    return {};
+    vector<vector<string>> componentes;
+    vector<string> ciudades = g.get_vertices();
+    vector<bool> visitados(ciudades.size(), false);
+
+    for (int i = 0; i < (int)visitados.size(); i++) {
+        if (!visitados[i]) {
+            //Hacemos un BSF por cada ciudad que no visitamos, marcando todas las ciudades visitadas.
+            queue<string> cola;
+            vector<string> componente;
+            cola.push(ciudades[i]);
+            visitados[i] = true;
+
+            while (!cola.empty()) {
+                string ciudad = cola.front();
+                cola.pop();
+                componente.push_back(ciudad);
+
+                for (string vecino : g.get_neighbors(ciudad)) {
+                    int ind = indiceDe(g, vecino);
+                    if (!visitados[ind]) {
+                        cola.push(vecino);
+                        visitados[ind] = true;
+                    }
+                }
+            }
+            componentes.push_back(componente);
+        }
+    }
+    return componentes;
 }
 
 // ================================================================
