@@ -84,6 +84,14 @@ int indiceDe(const GrafoCiudades& g, const string& ciudad) {
 //                  EJERCICIO 1: COMPONENTES CONEXAS
 // ================================================================
 
+//FUNCION AYUDA; Es como indiceDe pero no copia el vector en cada llamado. Ahorra O(n) en memoria
+static int buscar(const vector<string>& ciudades, const string& c) {
+    for (int i = 0; i < (int)ciudades.size(); i++) {
+        if (ciudades[i] == c) return i;
+    }
+    return -1;
+}
+
 vector<vector<string>> componentesConexas(const GrafoCiudades& g) {
     // TODO: implementar
     vector<vector<string>> componentes;
@@ -104,7 +112,7 @@ vector<vector<string>> componentesConexas(const GrafoCiudades& g) {
                 componente.push_back(ciudad);
 
                 for (string vecino : g.get_neighbors(ciudad)) {
-                    int ind = indiceDe(g, vecino);
+                    int ind = buscar(ciudades, vecino);
                     if (!visitados[ind]) {
                         cola.push(vecino);
                         visitados[ind] = true;
@@ -123,12 +131,48 @@ vector<vector<string>> componentesConexas(const GrafoCiudades& g) {
 
 const int INFINITO = 1000000000;
 
+
 // dist[i][j]: distancia mínima en km entre la ciudad i y la ciudad j, con
 // las ciudades numeradas en el orden de g.get_vertices() (INFINITO si no hay
 // camino).
 vector<vector<int>> distanciasTodosConTodos(const GrafoCiudades& g) {
     // TODO: implementar
-    return {};
+    vector<string> ciudades = g.get_vertices();
+    int n = (int)ciudades.size();
+    vector<vector<int>> vec(n), distancia(n);
+    for (int i = 0; i < n; i++) {
+        for (string& vecino : g.get_neighbors(ciudades[i])) {
+            vec[i].push_back(buscar(ciudades, vecino));
+            distancia[i].push_back(g.get_edge_data(ciudades[i], vecino).value());
+        }
+    }
+
+    vector<vector<int>> dist(n, vector<int>(n, INFINITO));
+
+    for (int i = 0; i < n; i++) {
+        vector<int>& dist_d_actual = dist[i];
+        vector<bool> cerrado(n, false);
+        dist_d_actual[i] = 0;
+        for (int j = 0; j < n; j++) {
+            int u = -1;
+            for (int k = 0; k < n; k++) {
+                if (!cerrado[k] && dist_d_actual[k] != INFINITO && (u == -1 || dist_d_actual[k] < dist_d_actual[u])) {
+                    u = k;
+                }
+            }
+
+            if (u == -1) {break;}
+            cerrado[u] = true;
+            
+            for (int s = 0; s < (int)vec[u].size(); s++) {
+                int v = vec[u][s];
+                if (dist_d_actual[u] + distancia[u][s] < dist_d_actual[v]) {
+                    dist_d_actual[v] = dist_d_actual[u] + distancia[u][s];
+                }
+            }
+        }
+    }
+    return dist;
 }
 
 // ================================================================
@@ -203,6 +247,17 @@ int main(int argc, char* argv[]) {
     cout << "\n=== Ejercicio 2 ===\n";
     vector<vector<int>> dist = distanciasTodosConTodos(g);
     // TODO: distancias Buenos Aires - La Quiaca y Buenos Aires - Ushuaia
+    int ba = indiceDe(g, "Buenos Aires");
+    int lq = indiceDe(g, "La Quiaca");
+    int us = indiceDe(g, "Ushuaia");
+
+    cout << "Buenos Aires - La Quiaca: ";
+    if (dist[ba][lq] == INFINITO) cout << "sin camino\n";
+    else cout << dist[ba][lq] << " km\n";
+
+    cout << "Buenos Aires - Ushuaia: ";
+    if (dist[ba][us] == INFINITO) cout << "sin camino\n";
+    else cout << dist[ba][us] << " km\n";
 
     cout << "\n=== Ejercicio 3 ===\n";
     cout << "Triángulos: " << contarTriangulos(g) << "\n";
