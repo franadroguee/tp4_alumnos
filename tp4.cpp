@@ -209,12 +209,97 @@ using Visitas = unordered_map<string, int>;
 
 Visitas randomWalks(const GrafoCiudades& g, int cantidad, int largo) {
     // TODO: implementar
-    return {};
+    vector<string> ciudades = g.get_vertices();
+    int n = (int)ciudades.size();
+    Visitas visitas;
+    
+    vector<vector<int>> vecinos(n);
+
+    for (int i = 0; i < n; i++) {
+        for (string& v : g.get_neighbors(ciudades[i])){
+            vecinos[i].push_back(buscar(ciudades, v));
+        }
+    }
+
+    mt19937 gen(42);
+    uniform_int_distribution<int> inicio(0, n - 1);
+    vector<int> cont(n, 0);
+
+    for (int i = 0; i < cantidad; i++) {
+        int actual = inicio(gen);
+        cont[actual] ++; 
+
+        for (int paso = 0; paso < largo; paso++) {
+            if (vecinos[actual].empty()) {break;}
+            uniform_int_distribution<int> elegir(0, (int)vecinos[actual].size() - 1);
+            int k = elegir(gen);
+            actual = vecinos[actual][k];
+            cont[actual] ++;
+        }
+    }
+
+    for (int i = 0; i < n; i++) {
+        visitas[ciudades[i]] = cont[i];
+    }
+
+    return visitas;
 }
 
 Visitas randomWalksPorDistancia(const GrafoCiudades& g, int cantidad, int largo) {
     // TODO: implementar
-    return {};
+        vector<string> ciudades = g.get_vertices();
+    int n = (int)ciudades.size();
+    Visitas visitas;
+    
+    vector<vector<int>> vecinos(n);
+    vector<discrete_distribution<int>> prob(n);
+
+    for (int i = 0; i < n; i++) {
+        vector<double> pesos;
+        for (string& v : g.get_neighbors(ciudades[i])){
+            vecinos[i].push_back(buscar(ciudades, v));
+            pesos.push_back(1.0 / (double)g.get_edge_data(ciudades[i], v).value());
+        }
+        if (!pesos.empty()) {
+            prob[i] = discrete_distribution<int>(pesos.begin(), pesos.end());
+        }
+    }
+
+    mt19937 gen(42);
+    uniform_int_distribution<int> inicio(0, n - 1);
+    vector<int> cont(n, 0);
+
+    for (int i = 0; i < cantidad; i++) {
+        int actual = inicio(gen);
+        cont[actual] ++; 
+
+        for (int paso = 0; paso < largo; paso++) {
+            if (vecinos[actual].empty()) {break;}
+            uniform_int_distribution<int> elegir(0, (int)vecinos[actual].size() - 1);
+            int k = prob[actual](gen);
+            actual = vecinos[actual][k];
+            cont[actual] ++;
+        }
+    }
+    
+    for (int i = 0; i < n; i++) {
+        visitas[ciudades[i]] = cont[i];
+    }
+
+    return visitas;
+
+}
+
+static void imprimirTop(const vector<string>& nombres, const vector<int>& valores, int k) {
+    vector<bool> usado(nombres.size(), false);
+    for (int t = 0; t < k; t++) {
+        int m = -1;
+        for (int i = 0; i < (int)nombres.size(); i++)
+            if (!usado[i] && (m == -1 || valores[i] > valores[m])) m = i;
+        if (m == -1) break;
+        usado[m] = true;
+        cout << "  " << t + 1 << ". " << nombres[m] << " (" << valores[m] << ")\n";
+    }
 }
 
 // ================================================================
@@ -271,6 +356,20 @@ int main(int argc, char* argv[]) {
     Visitas visitas = randomWalks(g, 10000, 100);
     Visitas visitasPorDistancia = randomWalksPorDistancia(g, 10000, 100);
     // TODO: las 10 ciudades más visitadas en cada caso, y las 10 de mayor grado
+
+    vector<string> nombres;
+    vector<int> v1, v2, grados;
+
+    for (const string& c : g.get_vertices()) {
+        nombres.push_back(c);
+        v1.push_back(visitas[c]);
+        v2.push_back(visitasPorDistancia[c]);
+        grados.push_back((int)g.get_neighbors(c).size());
+    }
+
+    cout << "\nTop 10 (vecino al azar):\n\n";        imprimirTop(nombres, v1, 10);
+    cout << "\nTop 10 (probabilidad ~ 1/km):\n\n";   imprimirTop(nombres, v2, 10);
+    cout << "\nTop 10 por grado:\n\n";               imprimirTop(nombres, grados, 10);
 
     cout << "\n=== Ejercicio 6 ===\n";
     analisisLibre(g);
